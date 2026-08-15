@@ -1,0 +1,6 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #0F0F14; color: #FFFFFF; }
+.layout { display: flex; }
+.sidebar { width: 72px; background: #17171D; border-right: 1px solid #2A2A33; padding: 20px; }
+.sidebar-brand { color: #8B5CF6; font-weight: bold; margin-bottom: 20px; }
+.content { flex: 1; padding: 40px; }
