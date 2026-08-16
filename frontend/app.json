@@ -8,17 +8,25 @@
     "splash": {
       "backgroundColor": "#0F0F14"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0F0F14"
-      }
+      },
+      "package": "com.qudrq11.dokaa"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "376a750b-2dd1-4a3e-8638-881598256f6a"
+      }
     }
   }
 }
