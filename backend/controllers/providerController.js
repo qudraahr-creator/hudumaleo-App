@@ -157,3 +157,28 @@ exports.setMyLocation = async (req, res) => {
     res.status(500).json({ error: 'Server error.' });
   }
 };
+
+// GET /api/providers/me (provider views own full profile)
+exports.getMyProviderProfile = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.*, u.full_name, u.phone, u.email, u.profile_photo_url
+       FROM providers p JOIN users u ON u.id = p.user_id
+       WHERE p.user_id = $1`,
+      [req.user.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Provider profile haipo.' });
+
+    const services = await pool.query(
+      `SELECT s.id, s.name, ps.price_min, ps.price_max
+       FROM provider_services ps JOIN services s ON s.id = ps.service_id
+       WHERE ps.provider_id = $1`,
+      [result.rows[0].id]
+    );
+
+    res.json({ ...result.rows[0], services: services.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
