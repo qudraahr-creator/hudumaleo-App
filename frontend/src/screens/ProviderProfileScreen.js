@@ -94,7 +94,7 @@ export default function ProviderProfileScreen({ navigation }) {
           <Text style={styles.statLabel}>Rating</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statValue}>{profile?.years_experience ?? '—'}</Text>
+          <Text style={styles.statValue}>{profile?.experience_years ?? '—'}</Text>
           <Text style={styles.statLabel}>Miaka ya Uzoefu</Text>
         </View>
         <View style={styles.statBox}>
