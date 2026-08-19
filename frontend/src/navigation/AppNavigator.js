@@ -9,6 +9,10 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ProviderProfileScreen from '../screens/ProviderProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import ProviderBookingsScreen from '../screens/ProviderBookingsScreen';
+import ProvidersListScreen from '../screens/ProvidersListScreen';
+import ProviderDetailScreen from '../screens/ProviderDetailScreen';
+import MyBookingsScreen from '../screens/MyBookingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +35,10 @@ export default function AppNavigator() {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Profile" component={ProviderProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="ProviderBookings" component={ProviderBookingsScreen} />
+            <Stack.Screen name="ProvidersList" component={ProvidersListScreen} />
+            <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} />
+            <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
           </>
         ) : (
           <>

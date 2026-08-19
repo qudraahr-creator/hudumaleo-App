@@ -7,6 +7,7 @@ export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isProvider = user?.role === 'provider';
 
   const loadCategories = useCallback(async () => {
     try {
@@ -23,19 +24,31 @@ export default function HomeScreen({ navigation }) {
     loadCategories();
   }, [loadCategories]);
 
+  function goToBookings() {
+    navigation.navigate(isProvider ? 'ProviderBookings' : 'MyBookings');
+  }
+
+  function handleCategoryPress(item) {
+    if (isProvider) return;
+    navigation.navigate('ProvidersList', { categoryId: item.id, categoryName: item.name });
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Habari, {user?.full_name?.split(' ')[0]} 👋</Text>
-          <Text style={styles.role}>{user?.role === 'provider' ? 'Fundi/Provider' : 'Customer'}</Text>
+          <Text style={styles.role}>{isProvider ? 'Fundi/Provider' : 'Customer'}</Text>
         </View>
         <View style={styles.headerActions}>
-          {user?.role === 'provider' && (
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profileBtn}>
-              <Text style={styles.profileBtnText}>Profile</Text>
+          {isProvider && (
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.headerBtn}>
+              <Text style={styles.headerBtnText}>Profile</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity onPress={goToBookings} style={styles.headerBtn}>
+            <Text style={styles.headerBtnText}>Bookings</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={logout}>
             <Text style={styles.logout}>Toka</Text>
           </TouchableOpacity>
@@ -50,7 +63,7 @@ export default function HomeScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadCategories} />}
         contentContainerStyle={{ paddingBottom: 40 }}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.categoryCard}>
+          <TouchableOpacity style={styles.categoryCard} onPress={() => handleCategoryPress(item)}>
             <Text style={styles.categoryName}>{item.name}</Text>
           </TouchableOpacity>
         )}
@@ -78,18 +91,18 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
   },
-  profileBtn: {
+  headerBtn: {
     backgroundColor: '#8B5CF6',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
-  profileBtnText: {
+  headerBtnText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 12,
   },
   greeting: {
     color: '#FFFFFF',
