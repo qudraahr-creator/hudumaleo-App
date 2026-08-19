@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, RefreshControl } fr
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +30,16 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Habari, {user?.full_name?.split(' ')[0]} 👋</Text>
           <Text style={styles.role}>{user?.role === 'provider' ? 'Fundi/Provider' : 'Customer'}</Text>
         </View>
-        <TouchableOpacity onPress={logout}>
-          <Text style={styles.logout}>Toka</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {user?.role === 'provider' && (
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.profileBtn}>
+              <Text style={styles.profileBtnText}>Profile</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.logout}>Toka</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Huduma Zinazopatikana</Text>
@@ -67,6 +74,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 30,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  profileBtn: {
+    backgroundColor: '#8B5CF6',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  profileBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   greeting: {
     color: '#FFFFFF',
