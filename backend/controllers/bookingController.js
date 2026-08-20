@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { sendPushNotification } = require('../utils/pushNotifications');
 
 // POST /api/bookings  (customer creates a booking)
 exports.createBooking = async (req, res) => {
@@ -13,7 +14,33 @@ exports.createBooking = async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [req.user.id, provider_id, service_id, scheduled_at || null, location_id || null, notes || null, price_agreed || null]
     );
-    res.status(201).json(result.rows[0]);
+    const booking = result.rows[0];
+
+    // Tuma notification kwa provider
+    try {
+      const providerRes = await pool.query(
+        `SELECT u.push_token, u.full_name AS provider_name, s.name AS service_name, cu.full_name AS customer_name
+         FROM providers p
+         JOIN users u ON u.id = p.user_id
+         JOIN services s ON s.id = $2
+         JOIN users cu ON cu.id = $3
+         WHERE p.id = $1`,
+        [provider_id, service_id, req.user.id]
+      );
+      if (providerRes.rows.length > 0) {
+        const { push_token, customer_name, service_name } = providerRes.rows[0];
+        await sendPushNotification(
+          push_token,
+          'Booking Mpya! 🔔',
+          `${customer_name} anahitaji ${service_name}`,
+          { type: 'new_booking', booking_id: booking.id }
+        );
+      }
+    } catch (notifErr) {
+      console.error('Notification error (createBooking):', notifErr.message);
+    }
+
+    res.status(201).json(booking);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error kutengeneza booking.' });
@@ -53,6 +80,14 @@ exports.myBookings = async (req, res) => {
   }
 };
 
+const STATUS_MESSAGES = {
+  accepted: { title: 'Booking Imekubaliwa ✅', body: 'Fundi amekubali ombi lako la' },
+  rejected: { title: 'Booking Imekataliwa ❌', body: 'Fundi amekataa ombi lako la' },
+  in_progress: { title: 'Kazi Imeanza 🔧', body: 'Fundi ameanza kazi ya' },
+  completed: { title: 'Kazi Imekamilika 🎉', body: 'Fundi amemaliza kazi ya' },
+  cancelled: { title: 'Booking Imeghairiwa', body: 'Booking ya' },
+};
+
 // PATCH /api/bookings/:id/status  { status_code }  -> accept/reject/complete/cancel
 exports.updateBookingStatus = async (req, res) => {
   const { status_code } = req.body;
@@ -67,7 +102,33 @@ exports.updateBookingStatus = async (req, res) => {
       [status_code, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Booking haikupatikana.' });
-    res.json(result.rows[0]);
+    const booking = result.rows[0];
+
+    // Tuma notification kwa customer
+    try {
+      const customerRes = await pool.query(
+        `SELECT u.push_token, s.name AS service_name
+         FROM bookings b
+         JOIN users u ON u.id = b.customer_id
+         JOIN services s ON s.id = b.service_id
+         WHERE b.id = $1`,
+        [booking.id]
+      );
+      if (customerRes.rows.length > 0 && STATUS_MESSAGES[status_code]) {
+        const { push_token, service_name } = customerRes.rows[0];
+        const msg = STATUS_MESSAGES[status_code];
+        await sendPushNotification(
+          push_token,
+          msg.title,
+          `${msg.body} ${service_name}`,
+          { type: 'booking_status', booking_id: booking.id, status: status_code }
+        );
+      }
+    } catch (notifErr) {
+      console.error('Notification error (updateBookingStatus):', notifErr.message);
+    }
+
+    res.json(booking);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });

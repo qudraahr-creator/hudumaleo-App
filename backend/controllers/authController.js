@@ -94,3 +94,17 @@ exports.me = async (req, res) => {
     res.status(500).json({ error: 'Server error.' });
   }
 };
+
+// PUT /api/auth/push-token  { push_token }
+exports.savePushToken = async (req, res) => {
+  const { push_token } = req.body;
+  if (!push_token) return res.status(400).json({ error: 'push_token ni lazima.' });
+
+  try {
+    await pool.query('UPDATE users SET push_token = $1 WHERE id = $2', [push_token, req.user.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+};
