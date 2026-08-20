@@ -64,7 +64,8 @@ exports.myBookings = async (req, res) => {
       );
     } else {
       result = await pool.query(
-        `SELECT b.*, s.name AS service_name, u.full_name AS provider_name
+        `SELECT b.*, s.name AS service_name, u.full_name AS provider_name,
+                EXISTS(SELECT 1 FROM reviews r WHERE r.booking_id = b.id) AS has_review
          FROM bookings b
          JOIN services s ON s.id = b.service_id
          JOIN providers p ON p.id = b.provider_id
