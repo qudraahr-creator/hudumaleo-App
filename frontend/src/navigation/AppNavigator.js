@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
@@ -13,11 +13,20 @@ import ProviderBookingsScreen from '../screens/ProviderBookingsScreen';
 import ProvidersListScreen from '../screens/ProvidersListScreen';
 import ProviderDetailScreen from '../screens/ProviderDetailScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
+import { registerForPushNotificationsAsync, savePushTokenToServer } from '../utils/notifications';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      registerForPushNotificationsAsync().then((token) => {
+        if (token) savePushTokenToServer(token);
+      });
+    }
+  }, [user]);
 
   if (loading) {
     return (
