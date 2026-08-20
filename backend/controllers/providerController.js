@@ -118,21 +118,52 @@ exports.updateMyProviderProfile = async (req, res) => {
 };
 
 // POST /api/providers/me/services  { service_id, price_min, price_max }
+// POST /api/providers/me/services  { service_name, category_id (optional), price_min, price_max }
 exports.addMyService = async (req, res) => {
-  const { service_id, price_min, price_max } = req.body;
+  const { service_name, category_id, price_min, price_max } = req.body;
+  if (!service_name || !service_name.trim()) {
+    return res.status(400).json({ error: 'Jina la huduma ni lazima.' });
+  }
+
   try {
     const providerRes = await pool.query('SELECT id FROM providers WHERE user_id = $1', [req.user.id]);
     if (providerRes.rows.length === 0) return res.status(404).json({ error: 'Provider profile haipo.' });
     const providerId = providerRes.rows[0].id;
+
+    const trimmedName = service_name.trim();
+
+    // Tafuta huduma iliyopo yenye jina linalofanana (case-insensitive)
+    let serviceRes = await pool.query(
+      `SELECT id FROM services WHERE LOWER(name) = LOWER($1) LIMIT 1`,
+      [trimmedName]
+    );
+
+    let serviceId;
+    if (serviceRes.rows.length > 0) {
+      serviceId = serviceRes.rows[0].id;
+    } else {
+      // Tengeneza huduma mpya
+      const newService = await pool.query(
+        `INSERT INTO services (category_id, name) VALUES ($1, $2) RETURNING id`,
+        [category_id || null, trimmedName]
+      );
+      serviceId = newService.rows[0].id;
+    }
 
     const result = await pool.query(
       `INSERT INTO provider_services (provider_id, service_id, price_min, price_max)
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (provider_id, service_id) DO UPDATE SET price_min = $3, price_max = $4
        RETURNING *`,
-      [providerId, service_id, price_min, price_max]
+      [providerId, serviceId, price_min, price_max]
     );
-    res.status(201).json(result.rows[0]);
+
+    const fullResult = await pool.query(
+      `SELECT ps.*, s.name FROM provider_services ps JOIN services s ON s.id = ps.service_id WHERE ps.provider_id = $1 AND ps.service_id = $2`,
+      [providerId, serviceId]
+    );
+
+    res.status(201).json(fullResult.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error.' });
