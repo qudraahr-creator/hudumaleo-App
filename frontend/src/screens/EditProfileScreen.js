@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  FlatList,
   Modal,
 } from 'react-native';
 import client from '../api/client';
@@ -20,29 +19,24 @@ export default function EditProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [allServices, setAllServices] = useState([]);
   const [myServices, setMyServices] = useState([]);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
+  const [serviceName, setServiceName] = useState('');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [addingService, setAddingService] = useState(false);
 
-  const [locationStatus, setLocationStatus] = useState(null); // null | 'loading' | 'saved' | 'error'
+  const [locationStatus, setLocationStatus] = useState(null);
   const [currentWard, setCurrentWard] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
-      const [profileRes, servicesRes] = await Promise.all([
-        client.get('/providers/me'),
-        client.get('/services'),
-      ]);
+      const profileRes = await client.get('/providers/me');
       setBio(profileRes.data.bio || '');
       setExperienceYears(
         profileRes.data.experience_years != null ? String(profileRes.data.experience_years) : ''
       );
       setMyServices(profileRes.data.services || []);
-      setAllServices(servicesRes.data || []);
     } catch (e) {
       console.log('EditProfile load error', e?.response?.data || e.message);
       Alert.alert('Hitilafu', 'Imeshindwa kupata taarifa. Jaribu tena.');
@@ -73,36 +67,6 @@ export default function EditProfileScreen({ navigation }) {
     }
   }
 
-  function openServicePicker() {
-    setSelectedService(null);
-    setPriceMin('');
-    setPriceMax('');
-    setPickerVisible(true);
-  }
-
-  async function handleAddService() {
-    if (!selectedService) {
-      Alert.alert('Chagua Huduma', 'Tafadhali chagua huduma kwanza.');
-      return;
-    }
-    setAddingService(true);
-    try {
-      await client.post('/providers/me/services', {
-        service_id: selectedService.id,
-        price_min: priceMin ? parseInt(priceMin, 10) : null,
-        price_max: priceMax ? parseInt(priceMax, 10) : null,
-      });
-      setPickerVisible(false);
-      loadData();
-    } catch (e) {
-      console.log('Add service error', e?.response?.data || e.message);
-      Alert.alert('Hitilafu', 'Imeshindwa kuongeza huduma. Jaribu tena.');
-    } finally {
-      setAddingService(false);
-    }
-  }
-
-
   async function handleSetLocation() {
     setLocationStatus('loading');
     const loc = await getCurrentLocation();
@@ -126,6 +90,35 @@ export default function EditProfileScreen({ navigation }) {
       console.log('Save location error', e?.response?.data || e.message);
       setLocationStatus('error');
       Alert.alert('Hitilafu', 'Imeshindwa kuhifadhi eneo. Jaribu tena.');
+    }
+  }
+
+  function openServicePicker() {
+    setServiceName('');
+    setPriceMin('');
+    setPriceMax('');
+    setPickerVisible(true);
+  }
+
+  async function handleAddService() {
+    if (!serviceName.trim()) {
+      Alert.alert('Andika Jina', 'Tafadhali andika jina la huduma unayotoa.');
+      return;
+    }
+    setAddingService(true);
+    try {
+      await client.post('/providers/me/services', {
+        service_name: serviceName.trim(),
+        price_min: priceMin ? parseInt(priceMin, 10) : null,
+        price_max: priceMax ? parseInt(priceMax, 10) : null,
+      });
+      setPickerVisible(false);
+      loadData();
+    } catch (e) {
+      console.log('Add service error', e?.response?.data || e.message);
+      Alert.alert('Hitilafu', 'Imeshindwa kuongeza huduma. Jaribu tena.');
+    } finally {
+      setAddingService(false);
     }
   }
 
@@ -169,7 +162,6 @@ export default function EditProfileScreen({ navigation }) {
           <Text style={styles.saveBtnText}>Hifadhi Profile</Text>
         )}
       </TouchableOpacity>
-
 
       <View style={styles.divider} />
 
@@ -223,21 +215,13 @@ export default function EditProfileScreen({ navigation }) {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Ongeza Huduma</Text>
 
-            <FlatList
-              data={allServices}
-              keyExtractor={(item) => String(item.id)}
-              style={{ maxHeight: 200 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.serviceOption,
-                    selectedService?.id === item.id && styles.serviceOptionSelected,
-                  ]}
-                  onPress={() => setSelectedService(item)}
-                >
-                  <Text style={styles.serviceOptionText}>{item.name}</Text>
-                </TouchableOpacity>
-              )}
+            <Text style={styles.label}>Jina la Huduma</Text>
+            <TextInput
+              style={styles.input}
+              value={serviceName}
+              onChangeText={setServiceName}
+              placeholder="mfano: Ukarabati wa Umeme, Usafi wa Nyumba..."
+              placeholderTextColor="#6B7280"
             />
 
             <Text style={styles.label}>Bei ya Chini (TSh)</Text>
@@ -327,6 +311,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  divider: {
+    height: 1,
+    backgroundColor: '#2A2A38',
+    marginVertical: 28,
+  },
   locationHint: { color: '#6B7280', fontSize: 12, marginBottom: 12, lineHeight: 18 },
   locationBtn: {
     backgroundColor: '#2A2A38',
@@ -338,11 +327,6 @@ const styles = StyleSheet.create({
   },
   locationBtnText: { color: '#A78BFA', fontWeight: '700', fontSize: 14 },
   locationSaved: { color: '#34D399', fontSize: 12, marginTop: 8, textAlign: 'center' },
-  divider: {
-    height: 1,
-    backgroundColor: '#2A2A38',
-    marginVertical: 28,
-  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -374,15 +358,7 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 36,
   },
-  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 14 },
-  serviceOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  serviceOptionSelected: { backgroundColor: '#2A1F4D' },
-  serviceOptionText: { color: '#fff', fontSize: 14 },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   modalActions: {
     flexDirection: 'row',
     gap: 12,
