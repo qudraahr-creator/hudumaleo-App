@@ -13,6 +13,7 @@ import ProviderBookingsScreen from '../screens/ProviderBookingsScreen';
 import ProvidersListScreen from '../screens/ProvidersListScreen';
 import ProviderDetailScreen from '../screens/ProviderDetailScreen';
 import MyBookingsScreen from '../screens/MyBookingsScreen';
+import ChatScreen from '../screens/ChatScreen';
 import { registerForPushNotificationsAsync, savePushTokenToServer } from '../utils/notifications';
 
 const Stack = createNativeStackNavigator();
@@ -48,6 +49,7 @@ export default function AppNavigator() {
             <Stack.Screen name="ProvidersList" component={ProvidersListScreen} />
             <Stack.Screen name="ProviderDetail" component={ProviderDetailScreen} />
             <Stack.Screen name="MyBookings" component={MyBookingsScreen} />
+            <Stack.Screen name="Chat" component={ChatScreen} />
           </>
         ) : (
           <>

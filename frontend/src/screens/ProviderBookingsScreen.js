@@ -30,7 +30,7 @@ const STATUS_COLORS = {
   cancelled: '#6B7280',
 };
 
-export default function ProviderBookingsScreen() {
+export default function ProviderBookingsScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -77,6 +77,10 @@ export default function ProviderBookingsScreen() {
       { text: 'Ghairi', style: 'cancel' },
       { text: 'Ndiyo', onPress: () => updateStatus(booking.id, statusCode) },
     ]);
+  }
+
+  function openChat(item) {
+    navigation.navigate('Chat', { bookingId: item.id, otherPersonName: item.customer_name });
   }
 
   function renderActions(item) {
@@ -178,6 +182,11 @@ export default function ProviderBookingsScreen() {
               </Text>
             )}
             {item.notes && <Text style={styles.detailText}>📝 {item.notes}</Text>}
+
+            <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
+              <Text style={styles.chatBtnText}>💬 Chat</Text>
+            </TouchableOpacity>
+
             {renderActions(item)}
           </View>
         )}
@@ -219,7 +228,15 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: '700' },
   serviceName: { color: '#A78BFA', fontSize: 14, fontWeight: '600', marginBottom: 6 },
   detailText: { color: '#9CA3AF', fontSize: 13, marginTop: 2 },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  chatBtn: {
+    backgroundColor: '#2A2A38',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  chatBtnText: { color: '#A78BFA', fontWeight: '700', fontSize: 13 },
+  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 10 },
   actionBtn: {
     flex: 1,
     paddingVertical: 10,
