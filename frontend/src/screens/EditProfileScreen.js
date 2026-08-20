@@ -12,6 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import client from '../api/client';
+import { getCurrentLocation } from '../utils/location';
 
 export default function EditProfileScreen({ navigation }) {
   const [bio, setBio] = useState('');
@@ -26,6 +27,9 @@ export default function EditProfileScreen({ navigation }) {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [addingService, setAddingService] = useState(false);
+
+  const [locationStatus, setLocationStatus] = useState(null); // null | 'loading' | 'saved' | 'error'
+  const [currentWard, setCurrentWard] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -98,6 +102,33 @@ export default function EditProfileScreen({ navigation }) {
     }
   }
 
+
+  async function handleSetLocation() {
+    setLocationStatus('loading');
+    const loc = await getCurrentLocation();
+    if (loc.error) {
+      setLocationStatus('error');
+      Alert.alert(
+        'Ruhusa Imekataliwa',
+        'Tafadhali washa GPS/Location kwenye mipangilio ya simu ili wateja waweze kukuona.'
+      );
+      return;
+    }
+    try {
+      const res = await client.post('/providers/me/location', {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        radius_km: 15,
+      });
+      setCurrentWard(res.data.ward || res.data.city || 'Eneo limehifadhiwa');
+      setLocationStatus('saved');
+    } catch (e) {
+      console.log('Save location error', e?.response?.data || e.message);
+      setLocationStatus('error');
+      Alert.alert('Hitilafu', 'Imeshindwa kuhifadhi eneo. Jaribu tena.');
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -138,6 +169,32 @@ export default function EditProfileScreen({ navigation }) {
           <Text style={styles.saveBtnText}>Hifadhi Profile</Text>
         )}
       </TouchableOpacity>
+
+
+      <View style={styles.divider} />
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Eneo la Kazi</Text>
+      </View>
+      <Text style={styles.locationHint}>
+        Weka eneo lako la sasa ili wateja walio karibu wakuone kwa urahisi.
+      </Text>
+      <TouchableOpacity
+        style={styles.locationBtn}
+        onPress={handleSetLocation}
+        disabled={locationStatus === 'loading'}
+      >
+        {locationStatus === 'loading' ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.locationBtnText}>
+            📍 {locationStatus === 'saved' ? 'Sasisha Eneo Langu' : 'Tumia Eneo Langu la Sasa'}
+          </Text>
+        )}
+      </TouchableOpacity>
+      {locationStatus === 'saved' && (
+        <Text style={styles.locationSaved}>✓ Eneo limehifadhiwa: {currentWard}</Text>
+      )}
 
       <View style={styles.divider} />
 
@@ -270,6 +327,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  locationHint: { color: '#6B7280', fontSize: 12, marginBottom: 12, lineHeight: 18 },
+  locationBtn: {
+    backgroundColor: '#2A2A38',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#8B5CF6',
+  },
+  locationBtnText: { color: '#A78BFA', fontWeight: '700', fontSize: 14 },
+  locationSaved: { color: '#34D399', fontSize: 12, marginTop: 8, textAlign: 'center' },
   divider: {
     height: 1,
     backgroundColor: '#2A2A38',

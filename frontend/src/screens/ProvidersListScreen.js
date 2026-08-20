@@ -9,16 +9,30 @@ import {
   RefreshControl,
 } from 'react-native';
 import client from '../api/client';
+import { getCurrentLocation } from '../utils/location';
 
 export default function ProvidersListScreen({ route, navigation }) {
   const { categoryId, categoryName } = route.params;
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
 
   const loadProviders = useCallback(async () => {
     try {
-      const res = await client.get('/providers', { params: { category_id: categoryId } });
+      const loc = await getCurrentLocation();
+      const params = { category_id: categoryId };
+
+      if (loc.error) {
+        setLocationDenied(true);
+      } else {
+        setLocationDenied(false);
+        params.lat = loc.latitude;
+        params.lng = loc.longitude;
+        params.radius = 30;
+      }
+
+      const res = await client.get('/providers', { params });
       setProviders(res.data);
     } catch (e) {
       console.log('Load providers error', e?.response?.data || e.message);
@@ -48,6 +62,11 @@ export default function ProvidersListScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{categoryName}</Text>
+      {locationDenied && (
+        <Text style={styles.locationWarning}>
+          📍 Washa GPS ili kuona mafundi walio karibu zaidi nawe.
+        </Text>
+      )}
       <FlatList
         data={providers}
         keyExtractor={(item) => item.id}
@@ -98,7 +117,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 20 },
+  title: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 10 },
+  locationWarning: {
+    color: '#FBBF24',
+    fontSize: 12,
+    marginBottom: 14,
+    backgroundColor: '#2A230F',
+    padding: 10,
+    borderRadius: 8,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -18,7 +18,11 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F0F14"
       },
-      "package": "com.qudrq11.dokaa"
+      "package": "com.qudrq11.dokaa",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,6 +31,14 @@
       "eas": {
         "projectId": "376a750b-2dd1-4a3e-8638-881598256f6a"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Dokaa inahitaji GPS yako kuonyesha mafundi walio karibu nawe."
+        }
+      ]
+    ]
   }
 }
