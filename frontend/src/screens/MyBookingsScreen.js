@@ -1,5 +1,16 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import client from '../api/client';
 
@@ -21,10 +32,16 @@ const STATUS_COLORS = {
   cancelled: '#6B7280',
 };
 
-export default function MyBookingsScreen() {
+export default function MyBookingsScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const loadBookings = useCallback(async () => {
     try {
@@ -47,6 +64,41 @@ export default function MyBookingsScreen() {
   function onRefresh() {
     setRefreshing(true);
     loadBookings();
+  }
+
+  function openChat(item) {
+    navigation.navigate('Chat', { bookingId: item.id, otherPersonName: item.provider_name });
+  }
+
+  function openReviewModal(item) {
+    setReviewBooking(item);
+    setRating(0);
+    setComment('');
+    setReviewModalVisible(true);
+  }
+
+  async function submitReview() {
+    if (rating < 1) {
+      Alert.alert('Chagua Rating', 'Tafadhali chagua nyota angalau moja.');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await client.post('/reviews', {
+        booking_id: reviewBooking.id,
+        provider_id: reviewBooking.provider_id,
+        rating,
+        comment: comment.trim() || null,
+      });
+      setReviewModalVisible(false);
+      Alert.alert('Asante!', 'Review yako imetumwa.');
+      loadBookings();
+    } catch (e) {
+      console.log('Submit review error', e?.response?.data || e.message);
+      Alert.alert('Hitilafu', e?.response?.data?.error || 'Imeshindwa kutuma review. Jaribu tena.');
+    } finally {
+      setSubmittingReview(false);
+    }
   }
 
   if (loading) {
@@ -89,10 +141,75 @@ export default function MyBookingsScreen() {
               </Text>
             )}
             {item.notes && <Text style={styles.detailText}>📝 {item.notes}</Text>}
+
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={styles.chatBtn} onPress={() => openChat(item)}>
+                <Text style={styles.chatBtnText}>💬 Chat</Text>
+              </TouchableOpacity>
+
+              {item.status_code === 'completed' && !item.has_review && (
+                <TouchableOpacity style={styles.reviewBtn} onPress={() => openReviewModal(item)}>
+                  <Text style={styles.reviewBtnText}>⭐ Toa Review</Text>
+                </TouchableOpacity>
+              )}
+              {item.status_code === 'completed' && item.has_review && (
+                <View style={styles.reviewedBadge}>
+                  <Text style={styles.reviewedBadgeText}>✓ Umeshatoa review</Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>Bado huna bookings zozote.</Text>}
       />
+
+      <Modal visible={reviewModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Toa Review</Text>
+            <Text style={styles.modalSubtitle}>{reviewBooking?.provider_name}</Text>
+
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star)}>
+                  <Text style={[styles.star, star <= rating && styles.starActive]}>★</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.label}>Maoni (hiari)</Text>
+            <TextInput
+              style={styles.textArea}
+              value={comment}
+              onChangeText={setComment}
+              placeholder="Eleza kuhusu huduma uliyopata..."
+              placeholderTextColor="#6B7280"
+              multiline
+              numberOfLines={4}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setReviewModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Ghairi</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={submitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Tuma Review</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -113,5 +230,72 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: '700' },
   serviceName: { color: '#A78BFA', fontSize: 14, fontWeight: '600', marginBottom: 6 },
   detailText: { color: '#9CA3AF', fontSize: 13, marginTop: 2 },
+  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 10, flexWrap: 'wrap' },
+  chatBtn: {
+    backgroundColor: '#2A2A38',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  chatBtnText: { color: '#A78BFA', fontWeight: '700', fontSize: 13 },
+  reviewBtn: {
+    backgroundColor: '#FBBF24',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  reviewBtnText: { color: '#0F0F14', fontWeight: '700', fontSize: 13 },
+  reviewedBadge: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
+  reviewedBadgeText: { color: '#34D399', fontSize: 12, fontWeight: '600' },
   emptyText: { color: '#6B7280', textAlign: 'center', marginTop: 60, fontSize: 14 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalContent: {
+    backgroundColor: '#17171D',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  modalTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  modalSubtitle: { color: '#9CA3AF', fontSize: 14, marginTop: 4, marginBottom: 20 },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 20 },
+  star: { fontSize: 40, color: '#2A2A38' },
+  starActive: { color: '#FBBF24' },
+  label: { color: '#9CA3AF', fontSize: 13, marginBottom: 6 },
+  textArea: {
+    backgroundColor: '#1A1A24',
+    color: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  modalActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  modalCancelBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: { color: '#9CA3AF', fontWeight: '600' },
+  modalSaveBtn: {
+    flex: 1,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalSaveText: { color: '#fff', fontWeight: '700' },
 });
