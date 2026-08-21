@@ -23,7 +23,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Dokaa API iko live 🚀' });
+  res.json({ message: 'HudumaLeo API iko live 🚀' });
 });
 
 app.use('/api/auth', authRoutes);
@@ -48,5 +48,5 @@ initSocket(io);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`✅ Dokaa backend (na Socket.io) inaendesha kwenye port ${PORT}`);
+  console.log(`✅ HudumaLeo backend (na Socket.io) inaendesha kwenye port ${PORT}`);
 });
