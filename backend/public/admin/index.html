@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HudumaLeo Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: #0F0F14;
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 600px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 20px; }
+  .card {
+    background: #1A1A24;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  input {
+    width: 100%;
+    background: #0F0F14;
+    border: 1px solid #2A2A38;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  button {
+    width: 100%;
+    background: #8B5CF6;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; }
+  .error { color: #F87171; font-size: 13px; margin-bottom: 10px; }
+  .hidden { display: none; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-box { background: #1A1A24; border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 24px; font-weight: 700; color: #A78BFA; }
+  .stat-label { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: #1A1A24;
+    cursor: pointer;
+    font-size: 13px;
+    color: #9CA3AF;
+  }
+  .tab.active { background: #8B5CF6; color: #fff; font-weight: 700; }
+  .provider-name { font-weight: 700; font-size: 16px; }
+  .provider-detail { color: #9CA3AF; font-size: 13px; margin-top: 4px; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+  .badge.pending { background: #2A230F; color: #FBBF24; }
+  .badge.verified { background: #0F2A1B; color: #34D399; }
+  .badge.rejected { background: #2A0F0F; color: #F87171; }
+  .actions { display: flex; gap: 10px; margin-top: 12px; }
+  .btn-approve { background: #34D399; color: #0F0F14; flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn-reject { background: #F87171; color: #0F0F14; flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .logout { text-align: right; color: #F87171; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
+  .empty { text-align: center; color: #6B7280; padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="loginScreen">
+    <h1>🔐 HudumaLeo Admin</h1>
+    <div class="card">
+      <div id="loginError" class="error hidden"></div>
+      <input type="text" id="phoneInput" placeholder="Namba ya Simu">
+      <input type="password" id="passwordInput" placeholder="Password">
+      <button onclick="login()">Ingia</button>
+    </div>
+  </div>
+
+  <div id="dashboardScreen" class="hidden">
+    <div class="logout" onclick="logout()">Toka →</div>
+    <h1>Dashboard</h1>
+
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-status="pending" onclick="switchTab('pending')">Zinasubiri</div>
+      <div class="tab" data-status="verified" onclick="switchTab('verified')">Zimeidhinishwa</div>
+      <div class="tab" data-status="rejected" onclick="switchTab('rejected')">Zimekataliwa</div>
+    </div>
+
+    <div id="providersList"></div>
+  </div>
+
+</div>
+
+<script>
+  const API_BASE = window.location.origin + '/api';
+  let token = localStorage.getItem('admin_token');
+  let currentTab = 'pending';
+
+  if (token) showDashboard();
+
+  async function login() {
+    const phone = document.getElementById('phoneInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const errorEl = document.getElementById('loginError');
+    errorEl.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login imeshindwa.');
+      if (data.user.role !== 'admin') throw new Error('Akaunti hii si ya admin.');
+
+      token = data.token;
+      localStorage.setItem('admin_token', token);
+      showDashboard();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('admin_token');
+    token = null;
+    document.getElementById('dashboardScreen').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+  }
+
+  function showDashboard() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('dashboardScreen').classList.remove('hidden');
+    loadStats();
+    loadProviders();
+  }
+
+  async function apiCall(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (res.status === 401 || res.status === 403) {
+      logout();
+      throw new Error('Session imeisha, ingia tena.');
+    }
+    return res.json();
+  }
+
+  async function loadStats() {
+    const stats = await apiCall('/admin/stats');
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-box"><div class="stat-value">${stats.total_customers}</div><div class="stat-label">Wateja</div></div>
+      <div class="stat-box"><div class="stat-value">${stats.total_providers}</div><div class="stat-label">Mafundi</div></div>
+      <div class="stat-box"><div class="stat-value">${stats.total_bookings}</div><div class="stat-label">Bookings</div></div>
+      <div class="stat-box"><div class="stat-value">${stats.pending_providers}</div><div class="stat-label">Wanasubiri</div></div>
+    `;
+  }
+
+  function switchTab(status) {
+    currentTab = status;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab[data-status="${status}"]`).classList.add('active');
+    loadProviders();
+  }
+
+  async function loadProviders() {
+    const listEl = document.getElementById('providersList');
+    listEl.innerHTML = '<div class="empty">Inapakia...</div>';
+    const providers = await apiCall(`/admin/providers?status=${currentTab}`);
+
+    if (providers.length === 0) {
+      listEl.innerHTML = '<div class="empty">Hakuna mafundi kwenye kundi hili.</div>';
+      return;
+    }
+
+    listEl.innerHTML = providers.map(p => `
+      <div class="card">
+        <div class="provider-name">${p.full_name}</div>
+        <div class="provider-detail">📞 ${p.phone}</div>
+        ${p.bio ? `<div class="provider-detail">${p.bio}</div>` : ''}
+        <div class="provider-detail">Uzoefu: ${p.experience_years || 0} miaka</div>
+        <span class="badge ${p.verification_status}">${p.verification_status}</span>
+        ${p.verification_status === 'pending' ? `
+          <div class="actions">
+            <div class="btn-approve" onclick="verifyProvider('${p.id}')">✓ Idhinisha</div>
+            <div class="btn-reject" onclick="rejectProvider('${p.id}')">✗ Kataa</div>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+  }
+
+  async function verifyProvider(id) {
+    await apiCall(`/admin/providers/${id}/verify`, { method: 'PATCH' });
+    loadStats();
+    loadProviders();
+  }
+
+  async function rejectProvider(id) {
+    await apiCall(`/admin/providers/${id}/reject`, { method: 'PATCH' });
+    loadStats();
+    loadProviders();
+  }
+</script>
+</body>
+</html>
