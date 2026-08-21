@@ -38,7 +38,7 @@ export default function LoginScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>Karibu Dokaa 👋</Text>
+      <Text style={styles.title}>Karibu HudumaLeo 👋</Text>
       <Text style={styles.subtitle}>Ingia kuendelea</Text>
 
       <View style={styles.inputWrapper}>

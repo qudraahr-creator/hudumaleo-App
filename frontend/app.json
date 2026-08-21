@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Dokaa",
-    "slug": "dokaa",
+    "name": "HudumaLeo",
+    "slug": "hudumaleo",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
@@ -18,7 +18,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#0F0F14"
       },
-      "package": "com.qudrq11.dokaa",
+      "package": "com.qudrq11.hudumaleo",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -36,7 +36,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Dokaa inahitaji GPS yako kuonyesha mafundi walio karibu nawe."
+          "locationAlwaysAndWhenInUsePermission": "HudumaLeo inahitaji GPS yako kuonyesha mafundi walio karibu nawe."
         }
       ]
     ]

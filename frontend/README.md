@@ -1,4 +1,4 @@
-# Dokaa Frontend (React Native + Expo)
+# HudumaLeo Frontend (React Native + Expo)
 
 ## Kuendesha kwenye Termux
 
