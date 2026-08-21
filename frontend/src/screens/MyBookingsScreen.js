@@ -43,6 +43,12 @@ export default function MyBookingsScreen({ navigation }) {
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  const [payModalVisible, setPayModalVisible] = useState(false);
+  const [payBooking, setPayBooking] = useState(null);
+  const [payAmount, setPayAmount] = useState('');
+  const [payPhone, setPayPhone] = useState('');
+  const [paying, setPaying] = useState(false);
+
   const loadBookings = useCallback(async () => {
     try {
       const res = await client.get('/bookings/mine');
@@ -77,6 +83,13 @@ export default function MyBookingsScreen({ navigation }) {
     setReviewModalVisible(true);
   }
 
+  function openPayModal(item) {
+    setPayBooking(item);
+    setPayAmount(item.price_agreed ? String(item.price_agreed) : '');
+    setPayPhone('');
+    setPayModalVisible(true);
+  }
+
   async function submitReview() {
     if (rating < 1) {
       Alert.alert('Chagua Rating', 'Tafadhali chagua nyota angalau moja.');
@@ -98,6 +111,36 @@ export default function MyBookingsScreen({ navigation }) {
       Alert.alert('Hitilafu', e?.response?.data?.error || 'Imeshindwa kutuma review. Jaribu tena.');
     } finally {
       setSubmittingReview(false);
+    }
+  }
+
+  async function submitPayment() {
+    const amountNum = parseInt(payAmount, 10);
+    if (!amountNum || amountNum < 1) {
+      Alert.alert('Bei Sahihi', 'Tafadhali weka kiasi sahihi cha malipo.');
+      return;
+    }
+    if (!payPhone.trim() || payPhone.trim().length < 9) {
+      Alert.alert('Namba ya Simu', 'Tafadhali weka namba sahihi ya simu (mfano 0712345678).');
+      return;
+    }
+    setPaying(true);
+    try {
+      await client.post('/payments/initiate', {
+        booking_id: payBooking.id,
+        phone_number: payPhone.trim(),
+        amount: amountNum,
+      });
+      setPayModalVisible(false);
+      Alert.alert(
+        'Ombi Limetumwa',
+        'Angalia simu yako uweke PIN yako kukamilisha malipo.'
+      );
+    } catch (e) {
+      console.log('Payment error', e?.response?.data || e.message);
+      Alert.alert('Hitilafu', e?.response?.data?.error || 'Imeshindwa kuanzisha malipo. Jaribu tena.');
+    } finally {
+      setPaying(false);
     }
   }
 
@@ -147,6 +190,14 @@ export default function MyBookingsScreen({ navigation }) {
                 <Text style={styles.chatBtnText}>💬 Chat</Text>
               </TouchableOpacity>
 
+              {(item.status_code === 'accepted' ||
+                item.status_code === 'in_progress' ||
+                item.status_code === 'completed') && (
+                <TouchableOpacity style={styles.payBtn} onPress={() => openPayModal(item)}>
+                  <Text style={styles.payBtnText}>💳 Lipa</Text>
+                </TouchableOpacity>
+              )}
+
               {item.status_code === 'completed' && !item.has_review && (
                 <TouchableOpacity style={styles.reviewBtn} onPress={() => openReviewModal(item)}>
                   <Text style={styles.reviewBtnText}>⭐ Toa Review</Text>
@@ -162,6 +213,55 @@ export default function MyBookingsScreen({ navigation }) {
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>Bado huna bookings zozote.</Text>}
       />
+
+      <Modal visible={payModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Lipa Huduma</Text>
+            <Text style={styles.modalSubtitle}>{payBooking?.service_name}</Text>
+
+            <Text style={styles.label}>Kiasi (TSh)</Text>
+            <TextInput
+              style={styles.input}
+              value={payAmount}
+              onChangeText={setPayAmount}
+              placeholder="mfano: 25000"
+              placeholderTextColor="#6B7280"
+              keyboardType="numeric"
+            />
+
+            <Text style={styles.label}>Namba ya Simu (M-Pesa/Tigo Pesa/Airtel)</Text>
+            <TextInput
+              style={styles.input}
+              value={payPhone}
+              onChangeText={setPayPhone}
+              placeholder="mfano: 0712345678"
+              placeholderTextColor="#6B7280"
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setPayModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Ghairi</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={submitPayment}
+                disabled={paying}
+              >
+                {paying ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Lipa Sasa</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={reviewModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -239,6 +339,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chatBtnText: { color: '#A78BFA', fontWeight: '700', fontSize: 13 },
+  payBtn: {
+    backgroundColor: '#34D399',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  payBtnText: { color: '#0F0F14', fontWeight: '700', fontSize: 13 },
   reviewBtn: {
     backgroundColor: '#FBBF24',
     paddingVertical: 8,
@@ -267,7 +375,17 @@ const styles = StyleSheet.create({
   starsRow: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginBottom: 20 },
   star: { fontSize: 40, color: '#2A2A38' },
   starActive: { color: '#FBBF24' },
-  label: { color: '#9CA3AF', fontSize: 13, marginBottom: 6 },
+  label: { color: '#9CA3AF', fontSize: 13, marginBottom: 6, marginTop: 10 },
+  input: {
+    backgroundColor: '#1A1A24',
+    color: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+  },
   textArea: {
     backgroundColor: '#1A1A24',
     color: '#fff',
