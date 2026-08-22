@@ -45,7 +45,7 @@ exports.initiatePayment = async (req, res) => {
     });
   } catch (err) {
     console.error('Payment initiate error:', err.message);
-    res.status(500).json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.' });
+    res.status(500).json({ error: 'Imeshindwa kuanzisha malipo. Jaribu tena.', debug: err.message });
   }
 };
 
