@@ -28,6 +28,23 @@ app.get('/', (req, res) => {
   res.json({ message: 'HudumaLeo API iko live 🚀' });
 });
 
+// TEMPORARY DEBUG - ondoa baadaye
+app.get('/debug-env', (req, res) => {
+  function preview(val) {
+    if (!val) return 'HAIPO KABISA';
+    return {
+      urefu: val.length,
+      mwanzo: val.slice(0, 4),
+      mwisho: val.slice(-4),
+      ina_nafasi_ziada: val !== val.trim(),
+    };
+  }
+  res.json({
+    CLICKPESA_CLIENT_ID: preview(process.env.CLICKPESA_CLIENT_ID),
+    CLICKPESA_API_KEY: preview(process.env.CLICKPESA_API_KEY),
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api', serviceRoutes); // /api/categories, /api/services
