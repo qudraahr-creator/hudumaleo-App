@@ -25,13 +25,21 @@ export default function EditProfileScreen({ navigation }) {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [addingService, setAddingService] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const [locationStatus, setLocationStatus] = useState(null);
   const [currentWard, setCurrentWard] = useState(null);
 
   const loadData = useCallback(async () => {
     try {
-      const profileRes = await client.get('/providers/me');
+      const [profileRes, categoriesRes] = await Promise.all([
+        client.get('/providers/me'),
+        client.get('/categories'),
+      ]);
+      setCategories(categoriesRes.data || []);
       setBio(profileRes.data.bio || '');
       setExperienceYears(
         profileRes.data.experience_years != null ? String(profileRes.data.experience_years) : ''
@@ -97,6 +105,7 @@ export default function EditProfileScreen({ navigation }) {
     setServiceName('');
     setPriceMin('');
     setPriceMax('');
+    setSelectedCategoryId(null);
     setPickerVisible(true);
   }
 
@@ -109,6 +118,7 @@ export default function EditProfileScreen({ navigation }) {
     try {
       await client.post('/providers/me/services', {
         service_name: serviceName.trim(),
+        category_id: selectedCategoryId,
         price_min: priceMin ? parseInt(priceMin, 10) : null,
         price_max: priceMax ? parseInt(priceMax, 10) : null,
       });
@@ -224,6 +234,52 @@ export default function EditProfileScreen({ navigation }) {
               placeholderTextColor="#6B7280"
             />
 
+            <Text style={styles.label}>Aina ya Huduma (Category)</Text>
+            <View style={styles.categoryRow}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategoryId === cat.id && styles.categoryChipActive,
+                  ]}
+                  onPress={() => setSelectedCategoryId(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategoryId === cat.id && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.label}>Aina ya Huduma (Category)</Text>
+            <View style={styles.categoryRow}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    selectedCategoryId === cat.id && styles.categoryChipActive,
+                  ]}
+                  onPress={() => setSelectedCategoryId(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      selectedCategoryId === cat.id && styles.categoryChipTextActive,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text style={styles.label}>Bei ya Chini (TSh)</Text>
             <TextInput
               style={styles.input}
@@ -311,6 +367,30 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  categoryChip: {
+    backgroundColor: '#1A1A24',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  categoryChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+  categoryChipText: { color: '#9CA3AF', fontSize: 13 },
+  categoryChipTextActive: { color: '#fff', fontWeight: '700' },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 6 },
+  categoryChip: {
+    backgroundColor: '#1A1A24',
+    borderWidth: 1,
+    borderColor: '#2A2A38',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  categoryChipActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+  categoryChipText: { color: '#9CA3AF', fontSize: 13 },
+  categoryChipTextActive: { color: '#fff', fontWeight: '700' },
   divider: {
     height: 1,
     backgroundColor: '#2A2A38',

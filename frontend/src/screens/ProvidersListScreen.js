@@ -12,7 +12,7 @@ import client from '../api/client';
 import { getCurrentLocation } from '../utils/location';
 
 export default function ProvidersListScreen({ route, navigation }) {
-  const { categoryId, categoryName } = route.params;
+  const { categoryId, categoryName } = route.params || {};
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,7 +21,8 @@ export default function ProvidersListScreen({ route, navigation }) {
   const loadProviders = useCallback(async () => {
     try {
       const loc = await getCurrentLocation();
-      const params = { category_id: categoryId };
+      const params = {};
+      if (categoryId) params.category_id = categoryId;
 
       if (loc.error) {
         setLocationDenied(true);
@@ -61,7 +62,7 @@ export default function ProvidersListScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{categoryName}</Text>
+      <Text style={styles.title}>{categoryName || 'Mafundi Walio Karibu'}</Text>
       {locationDenied && (
         <Text style={styles.locationWarning}>
           📍 Washa GPS ili kuona mafundi walio karibu zaidi nawe.
