@@ -32,7 +32,7 @@ async function getToken() {
   }
 
   const response = await fetch(`${BASE_URL}/generate-token`, {
-    method: 'GET',
+    method: 'POST',
     headers: {
       'client-id': process.env.CLICKPESA_CLIENT_ID,
       'api-key': process.env.CLICKPESA_API_KEY,
@@ -51,6 +51,18 @@ async function getToken() {
   return cachedToken;
 }
 
+function normalizePhoneNumber(phone) {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('0')) {
+    digits = '255' + digits.slice(1);
+  } else if (digits.startsWith('255')) {
+    // tayari sahihi
+  } else if (digits.length === 9) {
+    digits = '255' + digits;
+  }
+  return digits;
+}
+
 async function initiateUssdPush({ amount, orderReference, phoneNumber }) {
   const token = await getToken();
 
@@ -58,7 +70,7 @@ async function initiateUssdPush({ amount, orderReference, phoneNumber }) {
     amount: String(amount),
     currency: 'TZS',
     orderReference,
-    phoneNumber,
+    phoneNumber: normalizePhoneNumber(phoneNumber),
   };
   const checksum = createChecksum(payload);
 

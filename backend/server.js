@@ -28,39 +28,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'HudumaLeo API iko live 🚀' });
 });
 
-// TEMPORARY DEBUG - ondoa baadaye
-app.get('/debug-env', (req, res) => {
-  function preview(val) {
-    if (!val) return 'HAIPO KABISA';
-    return {
-      urefu: val.length,
-      mwanzo: val.slice(0, 4),
-      mwisho: val.slice(-4),
-      ina_nafasi_ziada: val !== val.trim(),
-    };
-  }
-  res.json({
-    CLICKPESA_CLIENT_ID: preview(process.env.CLICKPESA_CLIENT_ID),
-    CLICKPESA_API_KEY: preview(process.env.CLICKPESA_API_KEY),
-  });
-});
-
-// TEMPORARY DEBUG - jaribu moja kwa moja dhidi ya ClickPesa
-app.get('/debug-clickpesa-token', async (req, res) => {
-  try {
-    const response = await fetch('https://api.clickpesa.com/third-parties/generate-token', {
-      method: 'GET',
-      headers: {
-        'client-id': process.env.CLICKPESA_CLIENT_ID,
-        'api-key': process.env.CLICKPESA_API_KEY,
-      },
-    });
-    const text = await response.text();
-    res.json({ status: response.status, ok: response.ok, body: text.slice(0, 500) });
-  } catch (err) {
-    res.json({ fetchError: err.message });
-  }
-});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
