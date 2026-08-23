@@ -45,6 +45,23 @@ app.get('/debug-env', (req, res) => {
   });
 });
 
+// TEMPORARY DEBUG - jaribu moja kwa moja dhidi ya ClickPesa
+app.get('/debug-clickpesa-token', async (req, res) => {
+  try {
+    const response = await fetch('https://api.clickpesa.com/third-parties/generate-token', {
+      method: 'GET',
+      headers: {
+        'client-id': process.env.CLICKPESA_CLIENT_ID,
+        'api-key': process.env.CLICKPESA_API_KEY,
+      },
+    });
+    const text = await response.text();
+    res.json({ status: response.status, ok: response.ok, body: text.slice(0, 500) });
+  } catch (err) {
+    res.json({ fetchError: err.message });
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api', serviceRoutes); // /api/categories, /api/services
