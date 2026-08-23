@@ -37,6 +37,21 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+
+// TEMPORARY DEBUG
+app.get('/debug-balance', async (req, res) => {
+  try {
+    const { getToken } = require('./utils/clickpesa');
+    const token = await getToken();
+    const response = await fetch('https://api.clickpesa.com/third-parties/account/balance', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const text = await response.text();
+    res.json({ status: response.status, body: text.slice(0, 500) });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 app.use(express.static('public'));
 
 // 404 handler
