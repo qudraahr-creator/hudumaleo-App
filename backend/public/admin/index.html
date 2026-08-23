@@ -84,6 +84,14 @@
   .btn-reject { background: #F87171; color: #0F0F14; flex: 1; padding: 10px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13px; cursor: pointer; }
   .logout { text-align: right; color: #F87171; font-size: 13px; cursor: pointer; margin-bottom: 16px; }
   .empty { text-align: center; color: #6B7280; padding: 40px 0; }
+  .rejection-note { color: #F87171; font-size: 12px; margin-top: 6px; font-style: italic; }
+  .cat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #2A2A38; }
+  .cat-name { font-weight: 600; }
+  .cat-actions { display: flex; gap: 8px; }
+  .cat-del { color: #F87171; cursor: pointer; font-size: 13px; }
+  .add-cat-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-cat-row input { margin-bottom: 0; }
+  .add-cat-row button { width: auto; padding: 10px 16px; }
 </style>
 </head>
 <body>
@@ -110,8 +118,22 @@
       <div class="tab" data-status="verified" onclick="switchTab('verified')">Zimeidhinishwa</div>
       <div class="tab" data-status="rejected" onclick="switchTab('rejected')">Zimekataliwa</div>
     </div>
+    <div class="tab" style="margin-bottom:16px" onclick="showCategoriesView()">📁 Simamia Categories</div>
 
     <div id="providersList"></div>
+
+    <div id="categoriesView" class="hidden">
+      <div class="card">
+        <div id="categoriesList"></div>
+        <div class="add-cat-row">
+          <input type="text" id="newCatName" placeholder="Jina la category mpya">
+          <button onclick="addCategory()">+ Ongeza</button>
+        </div>
+        <div style="margin-top:12px; text-align:center;">
+          <span style="color:#8B5CF6; cursor:pointer;" onclick="backToProviders()">← Rudi kwenye Mafundi</span>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -212,10 +234,11 @@
         ${p.bio ? `<div class="provider-detail">${p.bio}</div>` : ''}
         <div class="provider-detail">Uzoefu: ${p.experience_years || 0} miaka</div>
         <span class="badge ${p.verification_status}">${p.verification_status}</span>
+        ${p.verification_status === 'rejected' && p.rejection_reason ? `<div class="rejection-note">Sababu: ${p.rejection_reason}</div>` : ''}
         ${p.verification_status === 'pending' ? `
           <div class="actions">
             <div class="btn-approve" onclick="verifyProvider('${p.id}')">✓ Idhinisha</div>
-            <div class="btn-reject" onclick="rejectProvider('${p.id}')">✗ Kataa</div>
+            <div class="btn-reject" onclick="rejectProviderPrompt('${p.id}')">✗ Kataa</div>
           </div>
         ` : ''}
       </div>
@@ -228,10 +251,52 @@
     loadProviders();
   }
 
-  async function rejectProvider(id) {
-    await apiCall(`/admin/providers/${id}/reject`, { method: 'PATCH' });
+  async function rejectProviderPrompt(id) {
+    const reason = prompt('Sababu ya kukataa (hiari):');
+    await apiCall(`/admin/providers/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason || null }),
+    });
     loadStats();
     loadProviders();
+  }
+
+  function showCategoriesView() {
+    document.getElementById('providersList').classList.add('hidden');
+    document.querySelector('.tabs').classList.add('hidden');
+    document.getElementById('categoriesView').classList.remove('hidden');
+    loadCategories();
+  }
+
+  function backToProviders() {
+    document.getElementById('providersList').classList.remove('hidden');
+    document.querySelector('.tabs').classList.remove('hidden');
+    document.getElementById('categoriesView').classList.add('hidden');
+  }
+
+  async function loadCategories() {
+    const res = await fetch(`${API_BASE}/categories`);
+    const cats = await res.json();
+    document.getElementById('categoriesList').innerHTML = cats.map(c => `
+      <div class="cat-row">
+        <span class="cat-name">${c.name}</span>
+        <span class="cat-del" onclick="deleteCategory(${c.id})">🗑 Futa</span>
+      </div>
+    `).join('');
+  }
+
+  async function addCategory() {
+    const name = document.getElementById('newCatName').value.trim();
+    if (!name) return;
+    await apiCall('/admin/categories', { method: 'POST', body: JSON.stringify({ name }) });
+    document.getElementById('newCatName').value = '';
+    loadCategories();
+  }
+
+  async function deleteCategory(id) {
+    if (!confirm('Una uhakika unataka kufuta category hii?')) return;
+    await apiCall(`/admin/categories/${id}`, { method: 'DELETE' });
+    loadCategories();
   }
 </script>
 </body>
