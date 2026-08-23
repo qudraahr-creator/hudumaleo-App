@@ -11,6 +11,25 @@ import {
   TextInput,
 } from 'react-native';
 import client from '../api/client';
+import { Linking } from 'react-native';
+
+function isOpenNow(startTime, endTime) {
+  if (!startTime || !endTime) return null;
+  const now = new Date();
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
+}
+
+function openWhatsApp(number) {
+  if (!number) return;
+  let digits = number.replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = '255' + digits.slice(1);
+  Linking.openURL(`https://wa.me/${digits}`);
+}
 
 export default function ProviderDetailScreen({ route, navigation }) {
   const { providerId } = route.params;
@@ -83,11 +102,38 @@ export default function ProviderDetailScreen({ route, navigation }) {
             {provider?.full_name ? provider.full_name.charAt(0).toUpperCase() : '?'}
           </Text>
         </View>
-        <Text style={styles.name}>{provider?.full_name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{provider?.full_name}</Text>
+          {provider?.verification_status === 'verified' && (
+            <Text style={styles.verifiedBadge}>✓</Text>
+          )}
+        </View>
         <Text style={styles.rating}>
           ⭐ {provider?.avg_rating ? Number(provider.avg_rating).toFixed(1) : 'Mpya'} ·{' '}
           {provider?.total_reviews || 0} reviews
         </Text>
+        {provider?.working_hours_start && provider?.working_hours_end && (
+          <View style={styles.statusRow}>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: isOpenNow(provider.working_hours_start, provider.working_hours_end) ? '#34D399' : '#F87171' },
+              ]}
+            />
+            <Text style={styles.statusText}>
+              {isOpenNow(provider.working_hours_start, provider.working_hours_end) ? 'Ameonline sasa' : 'Hayupo sasa'}
+              {' · '}{provider.working_hours_start.slice(0,5)} - {provider.working_hours_end.slice(0,5)}
+            </Text>
+          </View>
+        )}
+        {provider?.whatsapp_number && (
+          <TouchableOpacity
+            style={styles.whatsappBtn}
+            onPress={() => openWhatsApp(provider.whatsapp_number)}
+          >
+            <Text style={styles.whatsappBtnText}>💬 WhatsApp</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -198,6 +244,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: { alignItems: 'center', marginBottom: 24 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  verifiedBadge: {
+    color: '#fff',
+    backgroundColor: '#34D399',
+    fontSize: 12,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    textAlign: 'center',
+    lineHeight: 20,
+    overflow: 'hidden',
+    fontWeight: '900',
+  },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusText: { color: '#9CA3AF', fontSize: 12 },
+  whatsappBtn: {
+    backgroundColor: '#25D366',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+  },
+  whatsappBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   avatarCircle: {
     width: 84,
     height: 84,

@@ -32,6 +32,10 @@ export default function EditProfileScreen({ navigation }) {
 
   const [locationStatus, setLocationStatus] = useState(null);
   const [currentWard, setCurrentWard] = useState(null);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [workingHoursStart, setWorkingHoursStart] = useState('');
+  const [workingHoursEnd, setWorkingHoursEnd] = useState('');
+  const [workingDays, setWorkingDays] = useState('');
 
   const loadData = useCallback(async () => {
     try {
@@ -45,6 +49,10 @@ export default function EditProfileScreen({ navigation }) {
         profileRes.data.experience_years != null ? String(profileRes.data.experience_years) : ''
       );
       setMyServices(profileRes.data.services || []);
+      setWhatsappNumber(profileRes.data.whatsapp_number || '');
+      setWorkingHoursStart(profileRes.data.working_hours_start ? profileRes.data.working_hours_start.slice(0, 5) : '');
+      setWorkingHoursEnd(profileRes.data.working_hours_end ? profileRes.data.working_hours_end.slice(0, 5) : '');
+      setWorkingDays(profileRes.data.working_days || 'Mon-Sat');
     } catch (e) {
       console.log('EditProfile load error', e?.response?.data || e.message);
       Alert.alert('Hitilafu', 'Imeshindwa kupata taarifa. Jaribu tena.');
@@ -63,6 +71,10 @@ export default function EditProfileScreen({ navigation }) {
       await client.put('/providers/me/profile', {
         bio: bio.trim(),
         experience_years: experienceYears ? parseInt(experienceYears, 10) : null,
+        whatsapp_number: whatsappNumber.trim() || null,
+        working_hours_start: workingHoursStart.trim() || null,
+        working_hours_end: workingHoursEnd.trim() || null,
+        working_days: workingDays.trim() || null,
       });
       Alert.alert('Sawa', 'Profile imesasishwa.', [
         { text: 'Sawa', onPress: () => navigation.goBack() },
@@ -163,6 +175,43 @@ export default function EditProfileScreen({ navigation }) {
         placeholder="mfano: 5"
         placeholderTextColor="#6B7280"
         keyboardType="numeric"
+      />
+
+      <Text style={styles.label}>Namba ya WhatsApp</Text>
+      <TextInput
+        style={styles.input}
+        value={whatsappNumber}
+        onChangeText={setWhatsappNumber}
+        placeholder="mfano: 0712345678"
+        placeholderTextColor="#6B7280"
+        keyboardType="phone-pad"
+      />
+
+      <Text style={styles.label}>Muda wa Kufanya Kazi</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          value={workingHoursStart}
+          onChangeText={setWorkingHoursStart}
+          placeholder="08:00"
+          placeholderTextColor="#6B7280"
+        />
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          value={workingHoursEnd}
+          onChangeText={setWorkingHoursEnd}
+          placeholder="18:00"
+          placeholderTextColor="#6B7280"
+        />
+      </View>
+
+      <Text style={styles.label}>Siku za Kazi</Text>
+      <TextInput
+        style={styles.input}
+        value={workingDays}
+        onChangeText={setWorkingDays}
+        placeholder="mfano: Mon-Sat"
+        placeholderTextColor="#6B7280"
       />
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={saving}>
