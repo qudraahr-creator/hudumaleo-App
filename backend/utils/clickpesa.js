@@ -5,7 +5,6 @@ const BASE_URL = 'https://api.clickpesa.com/third-parties';
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
-// Canonicalize object (sort keys recursively) - inahitajika kwa checksum sahihi
 function canonicalize(obj) {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(canonicalize);
@@ -25,8 +24,26 @@ function createChecksum(payload) {
   return hmac.digest('hex');
 }
 
+function normalizePhoneNumber(phone) {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('0')) {
+    digits = '255' + digits.slice(1);
+  } else if (digits.length === 9) {
+    digits = '255' + digits;
+  }
+  return digits;
+}
+
+async function safeParse(response) {
+  const text = await response.text();
+  try {
+    return { data: JSON.parse(text), rawText: text };
+  } catch (e) {
+    return { data: null, rawText: text };
+  }
+}
+
 async function getToken() {
-  // Tumia token iliyohifadhiwa kama bado ina uhai (chini ya dakika 50 zilizopita)
   if (cachedToken && Date.now() < tokenExpiresAt) {
     return cachedToken;
   }
@@ -39,28 +56,16 @@ async function getToken() {
     },
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`ClickPesa token error (${response.status}): ${errText}`);
+  const { data, rawText } = await safeParse(response);
+
+  if (!response.ok || !data || !data.token) {
+    throw new Error(`[TOKEN STEP] status=${response.status} body=${rawText.slice(0, 200)}`);
   }
 
-  const data = await response.json();
-  cachedToken = data.token || data.access_token;
-  tokenExpiresAt = Date.now() + 50 * 60 * 1000; // dakika 50
+  cachedToken = data.token;
+  tokenExpiresAt = Date.now() + 50 * 60 * 1000;
 
   return cachedToken;
-}
-
-function normalizePhoneNumber(phone) {
-  let digits = phone.replace(/\D/g, '');
-  if (digits.startsWith('0')) {
-    digits = '255' + digits.slice(1);
-  } else if (digits.startsWith('255')) {
-    // tayari sahihi
-  } else if (digits.length === 9) {
-    digits = '255' + digits;
-  }
-  return digits;
 }
 
 async function initiateUssdPush({ amount, orderReference, phoneNumber }) {
@@ -83,9 +88,10 @@ async function initiateUssdPush({ amount, orderReference, phoneNumber }) {
     body: JSON.stringify({ ...payload, checksum }),
   });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || `ClickPesa payment error (${response.status})`);
+  const { data, rawText } = await safeParse(response);
+
+  if (!response.ok || !data) {
+    throw new Error(`[PUSH STEP] status=${response.status} body=${rawText.slice(0, 300)}`);
   }
 
   return data;
