@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import client from '../api/client';
+import { Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProviderProfileScreen({ navigation }) {
@@ -77,11 +78,15 @@ export default function ProviderProfileScreen({ navigation }) {
       }
     >
       <View style={styles.header}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarInitial}>
-            {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : '?'}
-          </Text>
-        </View>
+        {profile?.profile_photo_url ? (
+          <Image source={{ uri: profile.profile_photo_url }} style={styles.avatarCircle} />
+        ) : (
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarInitial}>
+              {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : '?'}
+            </Text>
+          </View>
+        )}
         <Text style={styles.name}>{profile?.full_name || 'Fundi'}</Text>
         <Text style={styles.phone}>{profile?.phone}</Text>
       </View>

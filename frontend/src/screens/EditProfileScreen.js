@@ -11,6 +11,8 @@ import {
   Modal,
 } from 'react-native';
 import client from '../api/client';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
 import { getCurrentLocation } from '../utils/location';
 
 export default function EditProfileScreen({ navigation }) {
@@ -18,6 +20,8 @@ export default function EditProfileScreen({ navigation }) {
   const [experienceYears, setExperienceYears] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [myServices, setMyServices] = useState([]);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -49,6 +53,7 @@ export default function EditProfileScreen({ navigation }) {
         profileRes.data.experience_years != null ? String(profileRes.data.experience_years) : ''
       );
       setMyServices(profileRes.data.services || []);
+      setPhotoUrl(profileRes.data.profile_photo_url || null);
       setWhatsappNumber(profileRes.data.whatsapp_number || '');
       setWorkingHoursStart(profileRes.data.working_hours_start ? profileRes.data.working_hours_start.slice(0, 5) : '');
       setWorkingHoursEnd(profileRes.data.working_hours_end ? profileRes.data.working_hours_end.slice(0, 5) : '');
@@ -64,6 +69,47 @@ export default function EditProfileScreen({ navigation }) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  async function pickAndUploadPhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Ruhusa Imekataliwa', 'Tunahitaji ruhusa ya kufikia picha zako.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setUploadingPhoto(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', {
+        uri: asset.uri,
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+      });
+
+      const res = await client.post('/providers/me/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setPhotoUrl(res.data.photo_url);
+      Alert.alert('Sawa', 'Picha imepakiwa.');
+    } catch (e) {
+      console.log('Upload photo error', e?.response?.data || e.message);
+      Alert.alert('Hitilafu', 'Imeshindwa kupakia picha. Jaribu tena.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function handleSaveProfile() {
     setSaving(true);
@@ -155,6 +201,25 @@ export default function EditProfileScreen({ navigation }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Hariri Profile</Text>
+
+      <TouchableOpacity style={styles.photoContainer} onPress={pickAndUploadPhoto} disabled={uploadingPhoto}>
+        {photoUrl ? (
+          <Image source={{ uri: photoUrl }} style={styles.photo} />
+        ) : (
+          <View style={styles.photoPlaceholder}>
+            <Text style={styles.photoPlaceholderText}>📷</Text>
+          </View>
+        )}
+        {uploadingPhoto ? (
+          <View style={styles.photoOverlay}>
+            <ActivityIndicator color="#fff" />
+          </View>
+        ) : (
+          <View style={styles.photoEditBadge}>
+            <Text style={styles.photoEditBadgeText}>✎</Text>
+          </View>
+        )}
+      </TouchableOpacity>
 
       <Text style={styles.label}>Kuhusu (Bio)</Text>
       <TextInput
@@ -385,6 +450,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: { color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 24 },
+  photoContainer: { alignSelf: 'center', marginBottom: 24, position: 'relative' },
+  photo: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#1A1A24' },
+  photoPlaceholder: {
+    width: 100, height: 100, borderRadius: 50, backgroundColor: '#1A1A24',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#2A2A38',
+  },
+  photoPlaceholderText: { fontSize: 32 },
+  photoOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 50,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  photoEditBadge: {
+    position: 'absolute', bottom: 0, right: 0, backgroundColor: '#8B5CF6',
+    width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#0F0F14',
+  },
+  photoEditBadgeText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   label: { color: '#9CA3AF', fontSize: 13, marginBottom: 6, marginTop: 14 },
   input: {
     backgroundColor: '#1A1A24',
