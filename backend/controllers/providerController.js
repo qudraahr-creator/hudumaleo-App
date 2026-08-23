@@ -8,6 +8,7 @@ exports.listProviders = async (req, res) => {
     let query = `
       SELECT p.id, p.bio, p.experience_years, p.verification_status,
              p.avg_rating, p.total_reviews, p.is_available,
+             p.whatsapp_number, p.working_hours_start, p.working_hours_end, p.working_days,
              u.full_name, u.phone, u.profile_photo_url,
              l.latitude, l.longitude, l.ward
       FROM providers p
@@ -22,6 +23,7 @@ exports.listProviders = async (req, res) => {
       query = `
         SELECT p.id, p.bio, p.experience_years, p.verification_status,
                p.avg_rating, p.total_reviews, p.is_available,
+               p.whatsapp_number, p.working_hours_start, p.working_hours_end, p.working_days,
                u.full_name, u.phone, u.profile_photo_url,
                l.latitude, l.longitude, l.ward
         FROM providers p
@@ -77,6 +79,7 @@ exports.getProvider = async (req, res) => {
       [req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Provider hakupatikana.' });
+    // getProvider tayari inarudisha p.* hivyo whatsapp_number/working_hours zipo moja kwa moja
 
     const services = await pool.query(
       `SELECT s.id, s.name, ps.price_min, ps.price_max
@@ -101,13 +104,18 @@ exports.getProvider = async (req, res) => {
 
 // PUT /api/providers/me (provider updates own profile)
 exports.updateMyProviderProfile = async (req, res) => {
-  const { bio, experience_years } = req.body;
+  const { bio, experience_years, whatsapp_number, working_hours_start, working_hours_end, working_days } = req.body;
   try {
     const result = await pool.query(
       `UPDATE providers SET bio = COALESCE($1, bio),
-       experience_years = COALESCE($2, experience_years), updated_at = NOW()
+       experience_years = COALESCE($2, experience_years),
+       whatsapp_number = COALESCE($4, whatsapp_number),
+       working_hours_start = COALESCE($5, working_hours_start),
+       working_hours_end = COALESCE($6, working_hours_end),
+       working_days = COALESCE($7, working_days),
+       updated_at = NOW()
        WHERE user_id = $3 RETURNING *`,
-      [bio, experience_years, req.user.id]
+      [bio, experience_years, req.user.id, whatsapp_number, working_hours_start, working_hours_end, working_days]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Provider profile haipo.' });
     res.json(result.rows[0]);

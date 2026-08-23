@@ -9,5 +9,8 @@ router.get('/stats', adminController.getStats);
 router.get('/providers', adminController.listProviders);
 router.patch('/providers/:id/verify', adminController.verifyProvider);
 router.patch('/providers/:id/reject', adminController.rejectProvider);
+router.post('/categories', adminController.createCategory);
+router.patch('/categories/:id', adminController.updateCategory);
+router.delete('/categories/:id', adminController.deleteCategory);
 
 module.exports = router;
