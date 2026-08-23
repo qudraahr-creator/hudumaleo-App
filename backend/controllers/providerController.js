@@ -221,3 +221,35 @@ exports.getMyProviderProfile = async (req, res) => {
     res.status(500).json({ error: 'Server error.' });
   }
 };
+
+// POST /api/providers/me/photo (multipart/form-data, field name: photo)
+exports.uploadPhoto = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Hakuna picha iliyotumwa.' });
+  }
+
+  try {
+    const cloudinary = require('../config/cloudinary');
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'hudumaleo/profiles', resource_type: 'image' },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    await pool.query('UPDATE users SET profile_photo_url = $1 WHERE id = $2', [
+      uploadResult.secure_url,
+      req.user.id,
+    ]);
+
+    res.json({ photo_url: uploadResult.secure_url });
+  } catch (err) {
+    console.error('Upload error:', err.message);
+    res.status(500).json({ error: 'Imeshindwa kupakia picha. Jaribu tena.' });
+  }
+};
