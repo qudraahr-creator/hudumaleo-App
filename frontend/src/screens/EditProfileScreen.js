@@ -31,8 +31,6 @@ export default function EditProfileScreen({ navigation }) {
   const [addingService, setAddingService] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const [locationStatus, setLocationStatus] = useState(null);
   const [currentWard, setCurrentWard] = useState(null);
